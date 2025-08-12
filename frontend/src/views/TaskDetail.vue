@@ -1,112 +1,145 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <AppNavigation
-      @create-task="showCreateModal = true"
-    />
+  <div class="min-h-screen relative overflow-hidden">
+    <!-- Animated background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+      <div class="absolute inset-0 bg-black/20"></div>
+      <!-- Floating orbs -->
+      <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <div class="absolute top-3/4 left-1/2 w-48 h-48 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
+      <div class="absolute top-1/2 left-1/8 w-32 h-32 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-700"></div>
+      <div class="absolute bottom-1/2 right-1/8 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-300"></div>
+      <div class="absolute top-1/8 right-1/3 w-56 h-56 bg-violet-500/20 rounded-full blur-3xl animate-pulse delay-900"></div>
+    </div>
 
-    <main class="container mx-auto px-4 py-8">
-      <div v-if="loading" class="flex justify-center py-12">
-        <BaseSpinner size="32" />
+    <!-- Navigation -->
+    <div class="relative z-10">
+      <AppNavigation
+        @create-task="showCreateModal = true"
+        class="bg-white/5 backdrop-blur-xl border-b border-white/10"
+      />
+    </div>
+
+    <main class="relative z-10 container mx-auto px-4 py-8">
+      <!-- Loading State -->
+      <div v-if="loading" class="flex justify-center py-16">
+        <div class="w-12 h-12 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
       </div>
 
-      <div v-else-if="!task" class="text-center py-12">
-        <div class="mx-auto h-24 w-24 text-muted-foreground mb-4">
-          <DocumentIcon class="h-full w-full" />
+      <!-- Task Not Found -->
+      <div v-else-if="!task" class="text-center py-16">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-12 max-w-md mx-auto">
+          <div class="mx-auto h-20 w-20 text-white/60 mb-6">
+            <DocumentIcon class="h-full w-full" />
+          </div>
+          <h3 class="text-xl font-medium text-white mb-3">Tâche non trouvée</h3>
+          <p class="text-white/70 mb-6">
+            La tâche que vous recherchez n'existe pas ou a été supprimée.
+          </p>
+          <button
+            @click="$router.push('/tasks')"
+            class="bg-white/20 hover:bg-white/30 border border-white/30 hover:border-white/50 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+          >
+            Retour aux tâches
+          </button>
         </div>
-        <h3 class="text-lg font-medium text-foreground mb-2">Tâche non trouvée</h3>
-        <p class="text-muted-foreground mb-4">
-          La tâche que vous recherchez n'existe pas ou a été supprimée.
-        </p>
-        <BaseButton @click="$router.push('/tasks')">
-          Retour aux tâches
-        </BaseButton>
       </div>
 
-      <div v-else class="space-y-6">
+      <!-- Task Content -->
+      <div v-else class="space-y-8">
         <!-- Header -->
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <div class="flex items-center space-x-3 mb-2">
-              <BaseButton
-                variant="ghost"
-                size="sm"
-                @click="$router.push('/tasks')"
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center space-x-3 mb-4">
+                <button
+                  @click="$router.push('/tasks')"
+                  class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                >
+                  <ArrowLeftIcon class="h-4 w-4" />
+                  Retour
+                </button>
+              </div>
+              <h1 class="text-4xl font-bold text-white mb-4">{{ task.title }}</h1>
+              <div class="flex items-center space-x-3">
+                <span :class="getStatusClasses(task.status)" class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
+                  {{ getStatusLabel(task.status) }}
+                </span>
+                <span :class="getPriorityClasses(task.priority)" class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
+                  {{ getPriorityLabel(task.priority) }}
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 ml-6">
+              <button
+                @click="editTask"
+                class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white px-4 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
               >
-                <ArrowLeftIcon class="h-4 w-4 mr-2" />
-                Retour
-              </BaseButton>
+                <PencilIcon class="h-4 w-4" />
+                Modifier
+              </button>
+              <button
+                @click="deleteTask"
+                class="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 text-red-300 px-4 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+              >
+                <TrashIcon class="h-4 w-4" />
+                Supprimer
+              </button>
             </div>
-            <h1 class="text-3xl font-bold text-foreground">{{ task.title }}</h1>
-            <div class="flex items-center space-x-2 mt-2">
-              <BaseBadge :variant="getStatusVariant(task.status)">
-                {{ getStatusLabel(task.status) }}
-              </BaseBadge>
-              <BaseBadge :variant="getPriorityVariant(task.priority)">
-                {{ getPriorityLabel(task.priority) }}
-              </BaseBadge>
-            </div>
-          </div>
-          <div class="flex items-center space-x-2">
-            <BaseButton
-              variant="outline"
-              @click="editTask"
-            >
-              <PencilIcon class="h-4 w-4 mr-2" />
-              Modifier
-            </BaseButton>
-            <BaseButton
-              variant="destructive"
-              @click="deleteTask"
-            >
-              <TrashIcon class="h-4 w-4 mr-2" />
-              Supprimer
-            </BaseButton>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Main content -->
-          <div class="lg:col-span-2 space-y-6">
+          <div class="lg:col-span-2 space-y-8">
             <!-- Description -->
-            <BaseCard>
-              <template #header>
-                <h3 class="text-lg font-semibold">Description</h3>
-              </template>
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+              <h3 class="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <DocumentIcon class="w-5 h-5 text-white" />
+                </div>
+                Description
+              </h3>
               <div class="prose prose-sm max-w-none">
-                <p v-if="task.description" class="text-foreground">
+                <p v-if="task.description" class="text-white/80 leading-relaxed text-lg">
                   {{ task.description }}
                 </p>
-                <p v-else class="text-muted-foreground italic">
+                <p v-else class="text-white/50 italic text-lg">
                   Aucune description fournie
                 </p>
               </div>
-            </BaseCard>
+            </div>
 
             <!-- Comments section -->
-            <BaseCard>
-              <template #header>
-                <h3 class="text-lg font-semibold">Commentaires</h3>
-              </template>
-              <div class="space-y-4">
-                <div v-if="comments.length === 0" class="text-center py-8">
-                  <ChatBubbleLeftRightIcon class="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p class="text-muted-foreground">Aucun commentaire pour le moment</p>
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+              <h3 class="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <ChatBubbleLeftRightIcon class="w-5 h-5 text-white" />
                 </div>
+                Commentaires
+              </h3>
+              
+              <div class="space-y-6">
+                <div v-if="comments.length === 0" class="text-center py-12">
+                  <ChatBubbleLeftRightIcon class="h-16 w-16 text-white/40 mx-auto mb-4" />
+                  <p class="text-white/60 text-lg">Aucun commentaire pour le moment</p>
+                </div>
+                
                 <div v-else class="space-y-4">
                   <div
                     v-for="comment in comments"
                     :key="comment.id"
-                    class="border-l-4 border-primary/20 pl-4 py-2"
+                    class="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm"
                   >
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
-                        <p class="text-sm font-medium text-foreground">
+                        <p class="font-medium text-white mb-2">
                           {{ comment.user?.full_name || 'Utilisateur' }}
                         </p>
-                        <p class="text-sm text-muted-foreground mt-1">
+                        <p class="text-white/80 mb-3 leading-relaxed">
                           {{ comment.content }}
                         </p>
-                        <p class="text-xs text-muted-foreground mt-2">
+                        <p class="text-sm text-white/50">
                           {{ formatDate(comment.created_at) }}
                         </p>
                       </div>
@@ -115,136 +148,123 @@
                 </div>
                 
                 <!-- Add comment form -->
-                <div class="border-t pt-4">
-                  <div class="space-y-2">
+                <div class="border-t border-white/20 pt-6">
+                  <div class="space-y-4">
                     <textarea
                       v-model="newComment"
                       rows="3"
                       placeholder="Ajouter un commentaire..."
-                      class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 transition-all duration-300 backdrop-blur-sm resize-none"
                     ></textarea>
                     <div class="flex justify-end">
-                      <BaseButton
+                      <button
                         @click="addComment"
                         :disabled="!newComment.trim()"
-                        size="sm"
+                        class="flex items-center gap-2 bg-white/20 hover:bg-white/30 disabled:bg-white/10 border border-white/30 hover:border-white/50 disabled:border-white/20 text-white disabled:text-white/40 px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm disabled:hover:scale-100 disabled:cursor-not-allowed"
                       >
-                        <PaperAirplaneIcon class="h-4 w-4 mr-2" />
+                        <PaperAirplaneIcon class="h-4 w-4" />
                         Ajouter un commentaire
-                      </BaseButton>
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-            </BaseCard>
+            </div>
           </div>
 
           <!-- Sidebar -->
-          <div class="space-y-6">
+          <div class="space-y-8">
             <!-- Task details -->
-            <BaseCard>
-              <template #header>
-                <h3 class="text-lg font-semibold">Détails</h3>
-              </template>
-              <div class="space-y-4">
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+              <h3 class="text-xl font-semibold text-white mb-6">Détails</h3>
+              <div class="space-y-6">
                 <div>
-                  <label class="text-sm font-medium text-muted-foreground">Statut</label>
-                  <div class="mt-1">
-                    <BaseBadge :variant="getStatusVariant(task.status)">
-                      {{ getStatusLabel(task.status) }}
-                    </BaseBadge>
-                  </div>
+                  <label class="text-sm font-medium text-white/70 block mb-2">Statut</label>
+                  <span :class="getStatusClasses(task.status)" class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
+                    {{ getStatusLabel(task.status) }}
+                  </span>
                 </div>
                 
                 <div>
-                  <label class="text-sm font-medium text-muted-foreground">Priorité</label>
-                  <div class="mt-1">
-                    <BaseBadge :variant="getPriorityVariant(task.priority)">
-                      {{ getPriorityLabel(task.priority) }}
-                    </BaseBadge>
-                  </div>
+                  <label class="text-sm font-medium text-white/70 block mb-2">Priorité</label>
+                  <span :class="getPriorityClasses(task.priority)" class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
+                    {{ getPriorityLabel(task.priority) }}
+                  </span>
                 </div>
                 
                 <div>
-                  <label class="text-sm font-medium text-muted-foreground">Date de création</label>
-                  <p class="text-sm text-foreground mt-1">
+                  <label class="text-sm font-medium text-white/70 block mb-2">Date de création</label>
+                  <p class="text-white">
                     {{ formatDate(task.created_at) }}
                   </p>
                 </div>
                 
                 <div v-if="task.due_date">
-                  <label class="text-sm font-medium text-muted-foreground">Date d'échéance</label>
-                  <p class="text-sm text-foreground mt-1">
+                  <label class="text-sm font-medium text-white/70 block mb-2">Date d'échéance</label>
+                  <p class="text-white">
                     {{ formatDate(task.due_date) }}
                   </p>
                 </div>
                 
                 <div v-if="task.updated_at">
-                  <label class="text-sm font-medium text-muted-foreground">Dernière modification</label>
-                  <p class="text-sm text-foreground mt-1">
+                  <label class="text-sm font-medium text-white/70 block mb-2">Dernière modification</label>
+                  <p class="text-white">
                     {{ formatDate(task.updated_at) }}
                   </p>
                 </div>
               </div>
-            </BaseCard>
+            </div>
 
             <!-- Actions -->
-            <BaseCard>
-              <template #header>
-                <h3 class="text-lg font-semibold">Actions</h3>
-              </template>
-              <div class="space-y-2">
-                <BaseButton
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+              <h3 class="text-xl font-semibold text-white mb-6">Actions</h3>
+              <div class="space-y-3">
+                <button
                   v-if="task.status !== 'completed'"
                   @click="updateStatus('completed')"
-                  variant="outline"
-                  class="w-full justify-start"
+                  class="w-full flex items-center gap-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 hover:border-green-500/50 text-green-300 px-4 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                 >
-                  <CheckIcon class="h-4 w-4 mr-2" />
+                  <CheckIcon class="h-4 w-4" />
                   Marquer comme terminée
-                </BaseButton>
+                </button>
                 
-                <BaseButton
+                <button
                   v-if="task.status === 'pending'"
                   @click="updateStatus('in_progress')"
-                  variant="outline"
-                  class="w-full justify-start"
+                  class="w-full flex items-center gap-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-500/50 text-blue-300 px-4 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                 >
-                  <PlayIcon class="h-4 w-4 mr-2" />
+                  <PlayIcon class="h-4 w-4" />
                   Commencer
-                </BaseButton>
+                </button>
                 
-                <BaseButton
+                <button
                   v-if="task.status === 'in_progress'"
                   @click="updateStatus('pending')"
-                  variant="outline"
-                  class="w-full justify-start"
+                  class="w-full flex items-center gap-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 hover:border-yellow-500/50 text-yellow-300 px-4 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                 >
-                  <PauseIcon class="h-4 w-4 mr-2" />
+                  <PauseIcon class="h-4 w-4" />
                   Mettre en pause
-                </BaseButton>
+                </button>
 
-                <BaseButton
+                <button
                   v-if="task.status !== 'canceled'"
                   @click="updateStatus('canceled')"
-                  variant="outline"
-                  class="w-full justify-start"
+                  class="w-full flex items-center gap-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 text-red-300 px-4 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                 >
-                  <XMarkIcon class="h-4 w-4 mr-2" />
+                  <XMarkIcon class="h-4 w-4" />
                   Annuler la tâche
-                </BaseButton>
+                </button>
 
-                <BaseButton
+                <button
                   v-if="task.status === 'canceled'"
                   @click="updateStatus('pending')"
-                  variant="outline"
-                  class="w-full justify-start"
+                  class="w-full flex items-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white px-4 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 backdrop-blur-sm"
                 >
-                  <ArrowPathIcon class="h-4 w-4 mr-2" />
+                  <ArrowPathIcon class="h-4 w-4" />
                   Réactiver
-                </BaseButton>
+                </button>
               </div>
-            </BaseCard>
+            </div>
           </div>
         </div>
       </div>
@@ -254,13 +274,17 @@
         v-model="showEditModal"
         title="Modifier la tâche"
         size="lg"
+        class="backdrop-blur-xl"
       >
-        <TaskForm
-          :task="task"
-          :loading="formLoading"
-          @submit="handleFormSubmit"
-          @cancel="showEditModal = false"
-        />
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6">
+          <TaskForm
+            :task="task"
+            :loading="formLoading"
+            @submit="handleFormSubmit"
+            @cancel="showEditModal = false"
+            class="glassmorphism-form"
+          />
+        </div>
       </BaseModal>
 
       <!-- Create Task Modal -->
@@ -268,12 +292,16 @@
         v-model="showCreateModal"
         title="Nouvelle tâche"
         size="lg"
+        class="backdrop-blur-xl"
       >
-        <TaskForm
-          :loading="createFormLoading"
-          @submit="handleCreateFormSubmit"
-          @cancel="showCreateModal = false"
-        />
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6">
+          <TaskForm
+            :loading="createFormLoading"
+            @submit="handleCreateFormSubmit"
+            @cancel="showCreateModal = false"
+            class="glassmorphism-form"
+          />
+        </div>
       </BaseModal>
     </main>
   </div>
@@ -300,10 +328,6 @@ import {
 } from '@heroicons/vue/24/outline'
 import api from '@/services/api'
 import {
-  BaseCard,
-  BaseButton,
-  BaseBadge,
-  BaseSpinner,
   BaseModal,
   AppNavigation,
   TaskForm
@@ -328,7 +352,7 @@ const fetchTask = async () => {
   loading.value = true
   try {
     const response = await api.get(`/tasks/${route.params.id}`)
-    task.value = response.data.data // L'API retourne { data: task }
+    task.value = response.data.data
   } catch (error) {
     toast.error('Erreur lors du chargement de la tâche')
     router.push('/tasks')
@@ -340,7 +364,7 @@ const fetchTask = async () => {
 const fetchComments = async () => {
   try {
     const response = await api.get(`/tasks/${route.params.id}/comments`)
-    comments.value = response.data.data // L'API retourne { data: comments }
+    comments.value = response.data.data
   } catch (error) {
     console.error('Erreur lors du chargement des commentaires:', error)
   }
@@ -353,7 +377,7 @@ const addComment = async () => {
     const response = await api.post(`/tasks/${route.params.id}/comments`, {
       content: newComment.value
     })
-    comments.value.push(response.data.data) // L'API retourne { data: comment }
+    comments.value.push(response.data.data)
     newComment.value = ''
     toast.success('Commentaire ajouté')
   } catch (error) {
@@ -364,7 +388,7 @@ const addComment = async () => {
 const updateStatus = async (status) => {
   try {
     const response = await api.put(`/tasks/${route.params.id}`, { status })
-    task.value = response.data.data // L'API retourne { data: task }
+    task.value = response.data.data
     toast.success('Statut mis à jour')
   } catch (error) {
     toast.error('Erreur lors de la mise à jour du statut')
@@ -391,7 +415,7 @@ const handleFormSubmit = async (taskData) => {
   formLoading.value = true
   try {
     const response = await api.put(`/tasks/${route.params.id}`, taskData)
-    task.value = response.data.data // L'API retourne { data: task }
+    task.value = response.data.data
     showEditModal.value = false
     toast.success('Tâche mise à jour')
   } catch (error) {
@@ -435,23 +459,23 @@ const getPriorityLabel = (priority) => {
   return labels[priority] || priority
 }
 
-const getStatusVariant = (status) => {
-  const variants = {
-    pending: 'secondary',
-    in_progress: 'default',
-    completed: 'outline',
-    canceled: 'destructive'
+const getStatusClasses = (status) => {
+  const classes = {
+    pending: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
+    in_progress: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
+    completed: 'bg-green-500/20 text-green-300 border border-green-500/30',
+    canceled: 'bg-red-500/20 text-red-300 border border-red-500/30'
   }
-  return variants[status] || 'secondary'
+  return classes[status] || 'bg-white/20 text-white border border-white/30'
 }
 
-const getPriorityVariant = (priority) => {
-  const variants = {
-    low: 'secondary',
-    medium: 'default',
-    high: 'destructive'
+const getPriorityClasses = (priority) => {
+  const classes = {
+    low: 'bg-gray-500/20 text-gray-300 border border-gray-500/30',
+    medium: 'bg-orange-500/20 text-orange-300 border border-orange-500/30',
+    high: 'bg-red-500/20 text-red-300 border border-red-500/30'
   }
-  return variants[priority] || 'secondary'
+  return classes[priority] || 'bg-white/20 text-white border border-white/30'
 }
 
 const formatDate = (dateString) => {
@@ -472,4 +496,92 @@ onMounted(() => {
   fetchTask()
   fetchComments()
 })
-</script> 
+</script>
+
+<style scoped>
+/* Custom animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+}
+
+.delay-500 {
+  animation-delay: 0.5s;
+}
+
+.delay-700 {
+  animation-delay: 0.7s;
+}
+
+.delay-900 {
+  animation-delay: 0.9s;
+}
+
+.delay-1000 {
+  animation-delay: 1s;
+}
+
+/* Glassmorphism effect enhancement */
+.backdrop-blur-xl {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom hover scale */
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
+/* Form styling */
+:deep(.glassmorphism-form input),
+:deep(.glassmorphism-form textarea),
+:deep(.glassmorphism-form select) {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 12px;
+}
+
+:deep(.glassmorphism-form input::placeholder),
+:deep(.glassmorphism-form textarea::placeholder) {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+:deep(.glassmorphism-form label) {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+:deep(.glassmorphism-form button) {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+:deep(.glassmorphism-form button:hover) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
+}
+</style>
